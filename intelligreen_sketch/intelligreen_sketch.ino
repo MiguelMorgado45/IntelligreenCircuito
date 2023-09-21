@@ -6,10 +6,10 @@ void setup() {
   
   Serial.println("Intelligreen iniciando...");
 
+  inicializarPreferencias();
   inicializarBT();
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-
 }

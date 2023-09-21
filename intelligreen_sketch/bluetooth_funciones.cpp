@@ -8,5 +8,26 @@
 BluetoothSerial SerialBT;
 
 void inicializarBT() {
-  SerialBT.begin("ESP32Prueba");
+  int valorRandom = obtenerValorNumerico("id");
+
+  if (valorRandom == 0) {
+    valorRandom = random(00000000,99999999);
+    
+    almacenarValorNumerico("id", valorRandom);
+  }
+
+  String nombre = "IntGreen" + String(valorRandom);
+  
+  SerialBT.begin(nombre);
+}
+
+int random(int min, int max)
+{
+   static bool first = true;
+   if (first) 
+   {  
+      srand( time(NULL) );
+      first = false;
+   }
+   return min + rand() % (( max + 1 ) - min);
 }
