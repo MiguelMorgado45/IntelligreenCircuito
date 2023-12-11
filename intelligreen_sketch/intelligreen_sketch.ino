@@ -16,12 +16,14 @@ void setup() {
   prefs.begin("intelligreen", false);
   prefs.clear();
 
-  configurarLeds();
   iniciarDHT();
-  conectarInternet();
+  configurarLeds();
+  inicializarBT();
 }
 
 void loop() {
+  obtenerInternet();
+  pingId();
   configurarMQTT();
 }
 

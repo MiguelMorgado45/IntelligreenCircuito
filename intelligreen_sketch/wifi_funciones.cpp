@@ -1,24 +1,44 @@
 #include "WiFiType.h"
 #include "wifi_funciones.h"
 
-#define NUM_LEDS 8
-#define DATA_PIN 23
+const char* mqtt_server = "x2824759.ala.us-east-1.emqxsl.com";
 
-const char* mqtt_server = "192.168.1.12";
+const char *ca_cert =
+  "-----BEGIN CERTIFICATE-----\n"
+  "MIIDrzCCApegAwIBAgIQCDvgVpBCRrGhdWrJWZHHSjANBgkqhkiG9w0BAQUFADBh\n"
+  "MQswCQYDVQQGEwJVUzEVMBMGA1UEChMMRGlnaUNlcnQgSW5jMRkwFwYDVQQLExB3\n"
+  "d3cuZGlnaWNlcnQuY29tMSAwHgYDVQQDExdEaWdpQ2VydCBHbG9iYWwgUm9vdCBD\n"
+  "QTAeFw0wNjExMTAwMDAwMDBaFw0zMTExMTAwMDAwMDBaMGExCzAJBgNVBAYTAlVT\n"
+  "MRUwEwYDVQQKEwxEaWdpQ2VydCBJbmMxGTAXBgNVBAsTEHd3dy5kaWdpY2VydC5j\n"
+  "b20xIDAeBgNVBAMTF0RpZ2lDZXJ0IEdsb2JhbCBSb290IENBMIIBIjANBgkqhkiG\n"
+  "9w0BAQEFAAOCAQ8AMIIBCgKCAQEA4jvhEXLeqKTTo1eqUKKPC3eQyaKl7hLOllsB\n"
+  "CSDMAZOnTjC3U/dDxGkAV53ijSLdhwZAAIEJzs4bg7/fzTtxRuLWZscFs3YnFo97\n"
+  "nh6Vfe63SKMI2tavegw5BmV/Sl0fvBf4q77uKNd0f3p4mVmFaG5cIzJLv07A6Fpt\n"
+  "43C/dxC//AH2hdmoRBBYMql1GNXRor5H4idq9Joz+EkIYIvUX7Q6hL+hqkpMfT7P\n"
+  "T19sdl6gSzeRntwi5m3OFBqOasv+zbMUZBfHWymeMr/y7vrTC0LUq7dBMtoM1O/4\n"
+  "gdW7jVg/tRvoSSiicNoxBN33shbyTApOB6jtSj1etX+jkMOvJwIDAQABo2MwYTAO\n"
+  "BgNVHQ8BAf8EBAMCAYYwDwYDVR0TAQH/BAUwAwEB/zAdBgNVHQ4EFgQUA95QNVbR\n"
+  "TLtm8KPiGxvDl7I90VUwHwYDVR0jBBgwFoAUA95QNVbRTLtm8KPiGxvDl7I90VUw\n"
+  "DQYJKoZIhvcNAQEFBQADggEBAMucN6pIExIK+t1EnE9SsPTfrgT1eXkIoyQY/Esr\n"
+  "hMAtudXH/vTBH1jLuG2cenTnmCmrEbXjcKChzUyImZOMkXDiqw8cvpOp/2PV5Adg\n"
+  "06O/nVsJ8dWO41P0jmP6P6fbtGbfYmbW0W5BjfIttep3Sp+dWOIrWcBAI+0tKIJF\n"
+  "PnlUkiaY4IBIqDfv8NZ5YBberOgOzW6sRBc4L0na4UU+Krk2U886UAb3LujEV0ls\n"
+  "YSEY1QSteDwsOoBrp+uvFRTp2InBuThs4pFsiv9kuXclVzDAGySj4dzp30d8tbQk\n"
+  "CAUw7C29C79Fv1C5qfPrmAESrciIxpg0X40KPMbp1ZWVbd4=\n"
+  "-----END CERTIFICATE-----";
 
-
-WiFiClient wifiClient;
+WiFiClientSecure wifiClient;
 PubSubClient mqttClient(wifiClient);
-CRGB leds[NUM_LEDS]; 
 long lastMsg = 0;
 bool conectado = false;
 
+/*
 void conectarInternet() {
   WifiData wifiData;
   wifiData.ssid = "IZZI-D66E";
   wifiData.password = "etpRGh6G";
   conectarInternet(wifiData);
-}
+}*/
 
 void conectarInternet(WifiData wifiData) {
   delay(10);
@@ -27,6 +47,7 @@ void conectarInternet(WifiData wifiData) {
 
   Serial.println("Conectando  a " + wifiData.ssid);
 
+  WiFi.disconnect();
   WiFi.begin(wifiData.ssid, wifiData.password);
 
   while (WiFi.status()  != WL_CONNECTED) {
@@ -39,17 +60,16 @@ void conectarInternet(WifiData wifiData) {
   Serial.println(WiFi.status());
   if (WiFi.status() == WL_CONNECTED) {
     encenderLeds(2);
+    wifiClient.setCACert(ca_cert);
     conectarMQTT();
   } else {
     conectado = false;
     encenderLeds(3);
-    delay(10000);
-    conectarInternet(wifiData);
   }
 }
 
 void conectarMQTT() {
-  mqttClient.setServer(mqtt_server, 1883);
+  mqttClient.setServer(mqtt_server, 8883);
   mqttClient.setCallback(callback);
   conectado = true;
 }
@@ -65,14 +85,14 @@ void configurarMQTT() {
   } else {
     Serial.println("No estas conectado");
   }
-  
+  delay(5000);
 }
 
 void reconectarMQTT() {
   while(!mqttClient.connected()) {
     encenderLeds(4);
     Serial.println("Intentando conexión con MQTT");
-    if (mqttClient.connect("ClienteIntelligreen")) {
+    if (mqttClient.connect("ClienteIntelligreen","user","user")) {
       encenderLeds(5);
       mqttClient.subscribe("intelligreen/salida");
     } else {
@@ -99,65 +119,10 @@ void dataLoop() {
 
     serializeJson(doc, msg);
     
-    mqttClient.publish("esp32/pruebas", msg);
+    mqttClient.publish("esp32/7e61df91-f29d-4aa6-ba34-620917b212bf", msg);
   } 
 }
 
 void callback(char* topic, byte* message, unsigned int length) {
   Serial.println("Llego un mensaje");
-}
-
-void configurarLeds() {
-  FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);  // GRB ordering is assumed
-}
-
-void encenderLeds(int estado) {
-  int index;
-  if (estado <= 3) {
-    index = 0;
-  } else if (estado <= 6) {
-    index = 1;
-  }
-
-  apagarLeds(index);
-  // 1 a 3 - Internet
-  if (estado == 1) {
-    for (int i = 0; i < 8; i++) {
-      leds[i] = CRGB::Green;
-      FastLED.show();
-      delay(100);
-    }
-  }
-  if (estado == 2) {
-    leds[0] = CRGB::BlueViolet;
-    FastLED.show();
-  }
-  if (estado == 3) {
-    leds[0] = CRGB::Red;
-    FastLED.show();
-  }
-
-  // 4 a 6 - MQTT
-  if (estado == 4) {
-    for (int i = 1; i < 8; i++) {
-      leds[i] = CRGB::Green;
-      FastLED.show();
-      delay(100);
-    }
-  }
-  if (estado == 5) {
-    leds[1] = CRGB::BlueViolet;
-    FastLED.show();
-  }
-  if (estado == 6) {
-    leds[1] = CRGB::Red;
-    FastLED.show();
-  }
-}
-
-void apagarLeds(int index) {
-  for(int i = index; i < 8; i++) {
-    leds[i] = CRGB::Black;
-  }
-  FastLED.show();
 }
